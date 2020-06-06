@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Networking App</string>
+    <string name="service_name">notification</string>
+</resources>
