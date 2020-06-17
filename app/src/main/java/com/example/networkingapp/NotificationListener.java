@@ -1,22 +1,22 @@
 package com.example.networkingapp;
 
-import android.app.Notification;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.os.Bundle;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.IBinder;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
 
+import static android.content.ContentValues.TAG;
+
 public class NotificationListener extends NotificationListenerService {
-
     Context context;
+    public static String notificationText;
+    public NotificationReceiver receiver;
 
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        context = getApplicationContext();
-        Log.i("OnCreate", "onCreate: Listener Active");
+    public NotificationListener() {
+        Log.i("Constructor", "called");
     }
 
     public NotificationListener(Context context) {
@@ -24,59 +24,84 @@ public class NotificationListener extends NotificationListenerService {
     }
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        context = getApplicationContext();
+        Log.i("OnCreate", "onCreate: Listener Active");
+        receiver = new NotificationReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("com.notification");
+        this.registerReceiver(receiver, filter);
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        Log.i("BIND", "binded the listener");
+        return super.onBind(intent);
+    }
+
+    @Override
     public void onListenerConnected() {
         super.onListenerConnected();
-        Log.i("Status of Listener", "onListenerConnected: Connected");
+        Log.i(TAG, "Listerner is Activated");
     }
 
     @Override
     public void onListenerDisconnected() {
         super.onListenerDisconnected();
-        Log.i("Status of Listener", "onListenerConnected: Disconnected");
+        Log.i(TAG, "Listener is Deactivated");
+    }
+
+    @Override
+    public StatusBarNotification[] getActiveNotifications(String[] keys) {
+        Log.i("All", "reading");
+        return super.getActiveNotifications(keys);
     }
 
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
-//        Toast.makeText(context,"Post Reomved",Toast.LENGTH_SHORT).show();
-        Log.i("Msg", "Notification Removed");
-
-    }
-
-    @Override
-    public StatusBarNotification[] getActiveNotifications() {
-        return super.getActiveNotifications();
+//        super.onNotificationRemoved(sbn);
+        Log.i(TAG, "**********  onNotificationRemoved");
+        Log.i(TAG, "ID :" + sbn.getId() + "\t" + sbn.getNotification().tickerText + "\t" + sbn.getPackageName());
+        if (sbn.getNotification().tickerText != null) {
+            notificationText = sbn.getNotification().tickerText.toString();
+            Intent intent = new Intent("com.notification");
+            intent.putExtra("text", notificationText);
+            Log.i("Notification",notificationText);
+            sendBroadcast(intent);
+            Log.i("BroadCast Remove", "Broadcasted");
+        }
     }
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
-        String pack = sbn.getPackageName();
-        String ticker = "";
+//        super.onNotificationPosted(sbn);
+        Log.i(TAG, "**********  onNotificationPosted");
+        Log.i(TAG, "ID :" + sbn.getNotification().tickerText + "\t" + sbn.getPackageName());
         if (sbn.getNotification().tickerText != null) {
-            ticker = sbn.getNotification().tickerText.toString();
+            notificationText = sbn.getNotification().tickerText.toString();
+            Intent intent = new Intent("com.notification");
+            intent.putExtra("text", notificationText);
+            Log.i("Notification",notificationText);
+            sendBroadcast(intent);
+            Log.i("BroadCast Posted", "Broadcasted");
         }
-        Bundle extras = sbn.getNotification().extras;
-        String title = extras.getString("android.title");
-        String text = extras.getCharSequence("android.text").toString();
-        int id1 = extras.getInt(Notification.EXTRA_SMALL_ICON);
-        Bitmap id = sbn.getNotification().largeIcon;
+    }
 
-
-        Log.i("Package", pack);
-        Log.i("Ticker", ticker);
-        Log.i("Title", title);
-        Log.i("Text", text);
-//        Toast.makeText(getApplicationContext(),"Notify",Toast.LENGTH_SHORT).show();
-//        Intent msgrcv = new Intent("Msg");
-//        msgrcv.putExtra("package", pack);
-//        msgrcv.putExtra("ticker", ticker);
-//        msgrcv.putExtra("title", title);
-//        msgrcv.putExtra("text", text);
-//        if (id != null) {
-//            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-//            id.compress(Bitmap.CompressFormat.PNG, 100, stream);
-//            byte[] byteArray = stream.toByteArray();
-//            msgrcv.putExtra("icon", byteArray);
-//        }
-//        sendBroadcast(msgrcv);
+    @Override
+    public void onDestroy() {
+        Log.i("Destroy", "des");
+        super.onDestroy();
     }
 }
+
+// Package Names
+// Receiving Call - com.android.incallui
+// Missed Call - com.android.server.telecom
+// Messages - com.android.mms
+// Whatsapp - com.whatsapp
+// Uber - com.ubercab
+// Inshorts - com.nis.app
+// Aarogya Setu - nic.goi.aarogyasetu
+// YouTube - com.google.android.youtube
+

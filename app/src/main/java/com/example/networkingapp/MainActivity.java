@@ -1,33 +1,36 @@
 package com.example.networkingapp;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
+import android.app.NotificationManager;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.service.notification.StatusBarNotification;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
 
-import static android.content.ContentValues.TAG;
+import com.google.android.material.snackbar.Snackbar;
 
 public class MainActivity extends AppCompatActivity {
 
-    private BroadcastReceiver notificationReceiver;
-    public NotificationListener trying;
     public Button enableButton;
+    public Button startButton;
+    public Button createButton;
+
+    public int REQUEST_ENABLE_BT = 1;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         enableButton = findViewById(R.id.enable);
+        startButton = findViewById(R.id.start);
+        createButton = findViewById(R.id.create);
         enableButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -35,36 +38,50 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        //Starting Service to Listen the notifications.
-        Intent intent = new Intent(this, NotificationListener.class);
-        this.startService(intent);
-
-        //Starting Service to Check if the Notification Listener Is active.
-        startService(new Intent(this, NotificationCollectorMonitorService.class));
-
-        trying = new NotificationListener(this);
-        StatusBarNotification[] notification = trying.getActiveNotifications();
-
-//        for
-
-        notificationReceiver = new BroadcastReceiver() {
+        startButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onReceive(Context context, Intent intent) {
-                String pack = intent.getStringExtra("package");
-//                String title = intent.getStringExtra("title");
-//                String text = intent.getStringExtra("text");
-                Log.i("PACK", "onReceive:" + pack);
-                Toast.makeText(context,"Broadcast Received",Toast.LENGTH_SHORT).show();
+            public void onClick(View v) {
+                BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                if (bluetoothAdapter == null) {
+                    Snackbar.make(findViewById(R.id.main), "Bluetooth is not supported in your Phone", Snackbar.LENGTH_LONG).show();
+                }
+                else if (!bluetoothAdapter.isEnabled()) {
+                    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                    Intent discoverableIntent =
+                            new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+                    discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+                    startActivity(discoverableIntent);
+                }
             }
-        };
+        });
 
-        IntentFilter intentFilter = new IntentFilter("Msg");
-        this.registerReceiver(notificationReceiver, intentFilter);
+        createButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                NotificationManager nManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                NotificationCompat.Builder ncomp = new NotificationCompat.Builder(MainActivity.this);
+                ncomp.setContentTitle("My Notification");
+                ncomp.setContentText("Notification Listener Service Example");
+                ncomp.setTicker("My Notification Tests");
+                ncomp.setSmallIcon(R.drawable.ic_launcher_background);
+                ncomp.setAutoCancel(true);
+                nManager.notify((int) System.currentTimeMillis(), ncomp.build());
+            }
+        });
+
+        // Starting this Service to resolve issues like NotificationListenerService Getting Disconnected automatically.
+        startService(new Intent(this, NotificationCollectorMonitorService.class));
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        unregisterReceiver(notificationReceiver);
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == 1 && resultCode == RESULT_OK){
+            Toast.makeText(MainActivity.this,"Bluetooth Enabled ", Toast.LENGTH_SHORT).show();
+        }
+        else{
+            Snackbar.make(findViewById(R.id.main), "You need to turn on Bluetooth to use this app.", Snackbar.LENGTH_INDEFINITE).show();
+        }
     }
 }

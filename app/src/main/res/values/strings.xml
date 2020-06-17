@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">Networking App</string>
     <string name="service_name">notification</string>
+    <string name="note_enable_notifications">Please Enable Notification in the Settings in order to use this app.</string>
+    <string name="create_notification">Create</string>
+    <string name="start_recieving_notifications">Start</string>
+    <string name="enable_notification">Enable</string>
 </resources>
